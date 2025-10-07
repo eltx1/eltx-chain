@@ -1,0 +1,58 @@
+{
+  "info": {
+    "name": "ELTX Chain",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "RPC eth_blockNumber",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"eth_blockNumber\",\n  \"params\": [],\n  \"id\": 1\n}"
+        },
+        "url": {
+          "raw": "https://rpc.eltx.online",
+          "protocol": "https",
+          "host": ["rpc", "eltx", "online"]
+        }
+      }
+    },
+    {
+      "name": "Faucet Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://faucet.eltx.online/healthz",
+          "protocol": "https",
+          "host": ["faucet", "eltx", "online"],
+          "path": ["healthz"]
+        }
+      }
+    },
+    {
+      "name": "Faucet Drip",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"address\": \"0x000000000000000000000000000000000000dEaD\"\n}"
+        },
+        "url": {
+          "raw": "https://faucet.eltx.online/drip",
+          "protocol": "https",
+          "host": ["faucet", "eltx", "online"],
+          "path": ["drip"]
+        }
+      }
+    }
+  ]
+}

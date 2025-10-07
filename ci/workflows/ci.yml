@@ -1,0 +1,35 @@
+name: ELTX Chain CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        working-directory: deploy
+        run: npm install
+      - name: Compile contracts
+        working-directory: deploy
+        run: npx hardhat compile
+      - name: Run tests
+        working-directory: deploy
+        run: npx hardhat test
+
+  lint-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint docker-compose files
+        run: |
+          pip install check-jsonschema
+          check-jsonschema --schema-file https://json.schemastore.org/docker-compose.json infra/besu/docker-compose.yml
+          check-jsonschema --schema-file https://json.schemastore.org/docker-compose.json infra/blockscout/docker-compose.yml

@@ -1,0 +1,9 @@
+export const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "https://rpc.eltx.online";
+export const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 20256);
+export const chainName = process.env.NEXT_PUBLIC_CHAIN_NAME || "ELTX Chain";
+export const explorerUrl = process.env.NEXT_PUBLIC_EXPLORER_URL || "https://explorer.eltx.online";
+export const factoryAddress = process.env.NEXT_PUBLIC_FACTORY_ADDRESS || "";
+export const routerAddress = process.env.NEXT_PUBLIC_ROUTER_ADDRESS || "";
+export const weltxAddress = process.env.NEXT_PUBLIC_WELTX_ADDRESS || "";
+export const eltxAddress = process.env.NEXT_PUBLIC_ELTX_ADDRESS || "";
+export const usdteAddress = process.env.NEXT_PUBLIC_USDTE_ADDRESS || "";

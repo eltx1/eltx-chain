@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Add ELTX Chain</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #0f172a;
+        color: #ffffff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+      }
+      button {
+        background: #38bdf8;
+        color: #000;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #0ea5e9;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Add ELTX Chain to your Wallet</h1>
+    <p>Click the button below to add the official ELTX Chain RPC to MetaMask-compatible wallets.</p>
+    <button id="add-network">Add ELTX Network</button>
+    <script>
+      document.getElementById('add-network').addEventListener('click', async () => {
+        if (!window.ethereum) {
+          alert('MetaMask or a compatible wallet is required.');
+          return;
+        }
+        try {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainId: '0x4F2A0',
+                chainName: 'ELTX Chain',
+                nativeCurrency: {
+                  name: 'ELTX',
+                  symbol: 'ELTX',
+                  decimals: 18
+                },
+                rpcUrls: ['https://rpc.eltx.online'],
+                blockExplorerUrls: ['https://explorer.eltx.online']
+              }
+            ]
+          });
+        } catch (error) {
+          console.error(error);
+          alert('Unable to add network: ' + error.message);
+        }
+      });
+    </script>
+  </body>
+</html>

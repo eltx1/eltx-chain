@@ -1,0 +1,103 @@
+version: "3.9"
+
+services:
+  besu-node1:
+    image: ${BESU_IMAGE:-hyperledger/besu:24.9.0}
+    container_name: eltx-besu-node1
+    restart: unless-stopped
+    user: "0:0"
+    stop_grace_period: 30s
+    volumes:
+      - ./node1/data:/var/lib/besu
+      - ./node1/keys:/opt/besu/keys:ro
+      - ./config:/config:ro
+      - ./genesis.json:/config/genesis.json:ro
+      - ./permissions.toml:/config/permissions.toml:ro
+      - ./static-nodes.json:/config/static-nodes.json:ro
+    command:
+      - "--config-file=/config/besu-opts-node1.toml"
+      - "--node-private-key-file=/opt/besu/keys/key.priv"
+    environment:
+      BESU_OPTS="-Xms2G -Xmx4G"
+    ports:
+      - "30303:30303/tcp"
+      - "30303:30303/udp"
+      - "8545:8545"
+      - "8546:8546"
+      - "9545:9545"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8545"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - besu
+
+  besu-node2:
+    image: ${BESU_IMAGE:-hyperledger/besu:24.9.0}
+    container_name: eltx-besu-node2
+    restart: unless-stopped
+    user: "0:0"
+    stop_grace_period: 30s
+    volumes:
+      - ./node2/data:/var/lib/besu
+      - ./node2/keys:/opt/besu/keys:ro
+      - ./config:/config:ro
+      - ./genesis.json:/config/genesis.json:ro
+      - ./permissions.toml:/config/permissions.toml:ro
+      - ./static-nodes.json:/config/static-nodes.json:ro
+    command:
+      - "--config-file=/config/besu-opts-node2.toml"
+      - "--node-private-key-file=/opt/besu/keys/key.priv"
+    environment:
+      BESU_OPTS="-Xms2G -Xmx4G"
+    ports:
+      - "30304:30304/tcp"
+      - "30304:30304/udp"
+      - "8645:8645"
+      - "8646:8646"
+      - "9645:9645"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8645"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - besu
+
+  besu-node3:
+    image: ${BESU_IMAGE:-hyperledger/besu:24.9.0}
+    container_name: eltx-besu-node3
+    restart: unless-stopped
+    user: "0:0"
+    stop_grace_period: 30s
+    volumes:
+      - ./node3/data:/var/lib/besu
+      - ./node3/keys:/opt/besu/keys:ro
+      - ./config:/config:ro
+      - ./genesis.json:/config/genesis.json:ro
+      - ./permissions.toml:/config/permissions.toml:ro
+      - ./static-nodes.json:/config/static-nodes.json:ro
+    command:
+      - "--config-file=/config/besu-opts-node3.toml"
+      - "--node-private-key-file=/opt/besu/keys/key.priv"
+    environment:
+      BESU_OPTS="-Xms2G -Xmx4G"
+    ports:
+      - "30305:30305/tcp"
+      - "30305:30305/udp"
+      - "8745:8745"
+      - "8746:8746"
+      - "9745:9745"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8745"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - besu
+
+networks:
+  besu:
+    name: eltx-besu
+    driver: bridge

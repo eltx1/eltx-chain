@@ -1,0 +1,21 @@
+{
+  "name": "ELTX Chain",
+  "short_name": "ELTX",
+  "network": "eltx-chain",
+  "currency": {
+    "name": "ELTX",
+    "symbol": "ELTX",
+    "decimals": 18
+  },
+  "rpc": {
+    "url": "https://rpc.eltx.online",
+    "ws_url": "wss://rpc.eltx.online/ws"
+  },
+  "explorer": {
+    "url": "https://explorer.eltx.online",
+    "title": "ELTX Chain Explorer",
+    "logo": "/branding/eltx-logo.svg",
+    "primaryColor": "#0f172a",
+    "secondaryColor": "#38bdf8"
+  }
+}

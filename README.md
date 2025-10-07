@@ -1,198 +1,178 @@
-ROLE: Senior DevOps + Solidity + Web3 Full-Stack. 
-GOAL: Create a production-ready monorepo “eltx-chain” for an EVM PoA/IBFT2 chain where ELTX is the native gas. Include chain infra, contracts, deployments, explorer, faucet, swap (Uniswap V2), and docs. Output full files, commands, and configs.
+# ELTX Chain Monorepo
 
-========================
-1) GLOBAL SPECS (use as defaults)
-========================
-- Network name: ELTX Chain
-- ChainId / NetworkId: 20256
-- Consensus: IBFT2 (Proof of Authority) on Hyperledger Besu
-- Block time: 2s
-- Fee model: Legacy gas (NO EIP-1559). 100% fees go to mining beneficiary.
-- Native currency: ELTX (decimals=18)
-- Treasury / fee beneficiary (receive ALL gas fees): 0x695658fC245ABbaDD7a276fF73Ed44f7374275D1
-- Initial ERC20 supply: 1,000,000,000 ELTX minted to the treasury above (token is mintable by owner).
-- Gas price policy: min=1 gwei, typical=1–3 gwei (configurable).
-- Domains:
-  * RPC public: https://rpc.eltx.online
-  * Explorer: https://explorer.eltx.online
-  * Faucet: https://faucet.eltx.online
-- CORS allowlist: https://eltx.online
-- Reverse proxy: Apache behind Cloudflare (generate sample vhost/.htaccess)
-- Docker-first deployment; PM2 only for Node services (faucet/swap UI).
+This repository packages the full production stack for the ELTX Chain IBFT2 network on Hyperledger Besu. It contains:
 
-========================
-2) REPO STRUCTURE
-========================
-eltx-chain/
-  README.md  (complete runbook)
-  .env.example (top-level)
-  /infra/
-    /besu/
-      node1/ node2/ node3/                 (3 validators)
-      genesis.json                         (IBFT2, chainId=20256, NO EIP-1559)
-      permissions.toml (allow only our nodes’ enodes)
-      static-nodes.json
-      docker-compose.yml (multi-service or one per node)
-      scripts/
-        init-ibft.sh        (creates keys, clique -> IBFT2 config if needed)
-        start-all.sh / stop-all.sh / logs.sh
-        set-gasprice.sh     (rpc call to adjust min gas price)
-      config/
-        besu-opts-nodeX.toml (enable JSON-RPC, ws, txpool; set miningBeneficiary = treasury)
-        rpc-cors.txt (include https://eltx.online)
-    /blockscout/
-      docker-compose.yml + .env
-      nginx.conf sample (if needed)
-      chain-config.json (custom chain meta: name, currency, explorer branding)
-    /bridge/   (placeholder doc for future bridge integration)
-    /reverse-proxy/
-      apache/
-        vhost-examples.md
-        eltx-rpc-htaccess.conf   (proxy to besu RPC; rate-limit; CORS headers)
-        eltx-faucet-htaccess.conf
-        eltx-explorer-htaccess.conf
-  /contracts/
-    ELTXToken.sol      (ERC20 Ownable Mintable Pausable + Permit; owner = treasury)
-    USDTE.sol          (ERC20 6 decimals; mintable by owner for bootstrapping liquidity)
-    WELTX.sol          (Wrapped ELTX)
-    uniswap-v2-core/   (pinned tag; with LICENSE)
-    uniswap-v2-periphery/
-  /deploy/
-    hardhat.config.ts (network 'eltx' with RPC https://rpc.eltx.online)
-    scripts/
-      00_deploy_weltx.ts
-      01_deploy_uniswap_core.ts (Factory)
-      02_deploy_uniswap_periphery.ts (Router with WELTX addr)
-      03_deploy_tokens.ts (deploy ELTXToken + USDTE; mint initial 1B ELTX to treasury; grant MINTER role to owner only)
-      04_seed_liquidity.ts (create ELTX/USDTE pair; add initial liquidity from treasury)
-      verify_addresses.json
-  /apps/
-    /faucet/
-      package.json + server.js (Express)
-      .env.example
-      src/
-        index.ts (endpoint /drip: rate-limit per IP+address; max 0.5 ELTX / 24h; captcha-ready)
-        wallet.ts (separate hot-wallet key; NEVER hardcode treasury key)
-      pm2.config.cjs
-      README.md (security notes + funding faucet)
-    /swap-ui/
-      nextjs app (pages / swap; connect wallet; auto-add network; config factory/router)
-      public/branding/ (ELTX logo)
-      .env.example
-      README.md
-    /add-network/
-      tiny static page with “Add ELTX Network” button => wallet_addEthereumChain({ chainId: 0x4F2A0, chainName: "ELTX Chain", nativeCurrency:{name:"ELTX",symbol:"ELTX",decimals:18}, rpcUrls:["https://rpc.eltx.online"], blockExplorerUrls:["https://explorer.eltx.online"] })
-  /ci/
-    github-actions to build contracts, run tests, lint Docker files.
-  /security/
-    THREAT_MODEL.md (keys, faucet abuse, RPC abuse; recommendations)
+- Besu validator infrastructure with Docker Compose, genesis, and management scripts.
+- Blockscout explorer deployment with custom branding.
+- ERC-20 contracts (ELTX, USDTE, WELTX) plus bundled Uniswap V2 core & periphery.
+- Hardhat deployments, liquidity seeding, and automated tests.
+- Node.js faucet service with rate limits and PM2 configuration.
+- Next.js swap UI, plus a static "Add Network" helper page.
+- Apache reverse proxy snippets, security guidance, and CI automation.
 
-========================
-3) INFRA DETAILS (WRITE REAL FILES, NO PSEUDO)
-========================
-- Besu genesis.json:
-  * chainId=20256, networkId=20256
-  * ibft2: list of validator addresses (generate node1..node3 keys; pre-load validator keys)
-  * NO EIP-1559 fee market; legacy gas only.
-  * block gas limit ~30,000,000
-  * base premine: fund the treasury + validator accounts (for bootstrapping)
-- Each node’s config:
-  * enable rpc: eth, net, web3, txpool, admin, clique/ibft if needed
-  * host-allowlist= ["*"] (but put Cloudflare/Apache in front)
-  * CORS: ["https://eltx.online"]
-  * miningBeneficiary = treasury address (so ALL gas fees pay to treasury)
-  * p2p port mapping; static-nodes.json connecting the 3 validators
-- Docker Compose:
-  * three besu services + shared network
-  * volumes for data/keys
-  * healthchecks
-- Scripts:
-  * init-ibft.sh: generate keys, create IBFT2 genesis with our validators, write static-nodes.json, run besu --genesis-file, etc.
-  * set-gasprice.sh: curl JSON-RPC to set min gas price to 1 gwei by default.
-- Reverse proxy:
-  * Apache .htaccess examples for rpc.eltx.online, explorer.eltx.online, faucet.eltx.online
-  * Add security headers, rate-limits, CORS allowlist (https://eltx.online)
-- Cloudflare:
-  * document required DNS and proxy settings (Orange cloud; SSL Full; caching rules bypass for /api, /drip)
+## Quick Start
 
-========================
-4) EXPLORER (BLOCKSCOUT)
-========================
-- Dockerized Blockscout connected to https://rpc.eltx.online
-- Branding: name “ELTX Chain”, symbol ELTX, logo from /apps/swap-ui/public/branding
-- Indexing settings + healthcheck
-- Document admin creds and how to reindex
-- Output explorer base URL env to README
+```bash
+git clone https://github.com/eltx-chain/eltx-chain.git
+cd eltx-chain
+cp .env.example .env
+```
 
-========================
-5) CONTRACTS + DEPLOY
-========================
-- ELTXToken.sol:
-  * ERC20, Ownable, Mintable, Pausable, Permit (EIP-2612), 18 decimals
-  * constructor mints 1,000,000,000 * 1e18 to TREASURY
-  * onlyOwner can mint/burn/pause/unpause; timelock OWNER instructions doc
-- USDTE.sol:
-  * ERC20 6 decimals; mintable by owner (for bootstrap only; doc the risk; later replace with bridged USDC)
-- WELTX.sol: standard WETH9-like wrapper renamed to WELTX
-- Uniswap V2:
-  * include core + periphery (pinned commit; GPL-3 license preserved)
-  * deploy Factory => Router with WELTX address
-  * script 04_seed_liquidity.ts adds initial ELTX/USDTE liquidity (values configurable via .env)
-- Hardhat setup:
-  * network 'eltx' RPC https://rpc.eltx.online, chainId=20256
-  * tasks: deploy-all, verify, seed-liquidity, print-addresses
-- Output deployment addresses JSON under /deploy/verify_addresses.json
+### 1. Generate Validator Keys and Genesis
 
-========================
-6) FAUCET APP
-========================
-- Node/Express with rate-limit (IP + wallet) + captcha-ready (stub)
-- .env: RPC_URL, FAUCET_PRIVATE_KEY (hot), DRIP_AMOUNT=0.5 ELTX, COOLDOWN=24h, TREASURY=...
-- POST /drip {address} → on success send 0.5 ELTX
-- PM2 config for prod; sample systemd if needed
-- Security notes: never put treasury private key in code; use a separate limited hot wallet funded from treasury.
+```bash
+cd infra/besu
+./scripts/init-ibft.sh      # generates/updates node keys, static-nodes, permissions, and genesis
+```
 
-========================
-7) SWAP UI (NEXT.JS)
-========================
-- Simple swap: connect wallet, auto “Add ELTX Network”, show balances, allow ELTX<->USDTE swaps via Router
-- Config file with Factory, Router, WELTX, ELTX/ USDTE addresses
-- Display gas in ELTX and estimated fee in USD
-- CORS with https://eltx.online; handle chain switch errors
+The script relies on `openssl` and Python with `eth-account`. To regenerate keys: `./scripts/init-ibft.sh --regenerate`.
 
-========================
-8) DOCS & RUNBOOK
-========================
-- README: one-command bootstrap for local (docker compose up -d) and for prod
-- Step-by-step:
-  1) generate validators + init IBFT2
-  2) bring up nodes
-  3) expose RPC behind Apache/Cloudflare
-  4) deploy contracts (hardhat)
-  5) seed liquidity
-  6) run Blockscout
-  7) run Faucet (PM2)
-  8) publish Add-Network page
-- Security checklist (ports, backups, key mgmt, rate-limits)
-- Upgrade notes (adding validator #4 or #5)
-- Postman collection for Faucet & RPC calls
+### 2. Launch the Besu Validators
 
-========================
-9) ACCEPTANCE TESTS
-========================
-- Hardhat tests:
-  * can mint ELTX (owner only), transfer, pause/unpause
-  * swap works on Router
-  * WELTX deposit/withdraw
-- Healthchecks: RPC (eth_blockNumber), Faucet (/drip dry-run), Explorer (homepage 200)
-- Provide sample addresses after deploy (printed by scripts)
+```bash
+./scripts/start-all.sh
+```
 
-========================
-10) LICENSES
-========================
-- Keep GPL-3 for Uniswap v2 (core/periphery)
-- MIT for our code
-- Include NOTICE with attributions
+This brings up three validators (node1-node3) on ports 8545/8546, 8645/8646, 8745/8746 with metrics enabled. Logs and lifecycle helpers:
 
-END. Produce all files and commands. No placeholders — use the values above unless overridden by .env. 
+```bash
+./scripts/logs.sh            # follow logs for all services
+./scripts/stop-all.sh        # stop and remove containers
+./scripts/set-gasprice.sh 1000000000   # set min gas price to 1 gwei
+```
+
+Validators reward the treasury address `0x695658fC245ABbaDD7a276fF73Ed44f7374275D1` as the mining beneficiary.
+
+### 3. Expose RPC Behind Apache + Cloudflare
+
+1. Proxy Besu via Apache using the snippets in `infra/reverse-proxy/apache/`. Example vhost:
+   - `eltx-rpc-htaccess.conf` enforces CORS for `https://eltx.online` and rate limits.
+   - Restrict inbound IPs to Cloudflare ranges.
+2. Set Cloudflare DNS (orange cloud) for:
+   - `rpc.eltx.online` → Apache upstream (Full SSL, HTTP/2 enabled).
+   - `explorer.eltx.online`, `faucet.eltx.online` with caching bypass rules for `/api` and `/drip`.
+3. Enable Cloudflare WAF "API Shield" to throttle abnormal RPC traffic.
+
+### 4. Deploy Contracts & Seed Liquidity
+
+```bash
+cd deploy
+npm install
+npx hardhat compile
+npx hardhat test
+```
+
+Populate `.env` (copy from `.env.example`) with `RPC_URL`, `TREASURY_ADDRESS`, and `DEPLOYER_KEY` (treasury signer). Then run:
+
+```bash
+npx hardhat deploy-all --network eltx
+npx hardhat seed-liquidity --network eltx
+npx hardhat print-addresses
+```
+
+Deployment addresses are written to `deploy/scripts/deployments/<network>.json` and mirrored in `deploy/verify_addresses.json` for Blockscout verification.
+
+### 5. Run Blockscout Explorer
+
+```bash
+cd ../infra/blockscout
+docker compose up -d
+```
+
+Blockscout listens on port `4000` with healthchecks on `4001`. Customize branding via `chain-config.json` and `branding/eltx-logo.svg`. Expose publicly via Apache (`eltx-explorer-htaccess.conf`).
+
+### 6. Faucet Service
+
+```bash
+cd ../../apps/faucet
+cp .env.example .env
+npm install
+npm run build
+pm2 start pm2.config.cjs
+```
+
+Environment variables:
+- `RPC_URL`, `FAUCET_PRIVATE_KEY`
+- `DRIP_AMOUNT` (default 0.5 ELTX)
+- `COOLDOWN_HOURS` (24h default)
+
+The `/drip` endpoint enforces per-IP and per-address limits via `rate-limiter-flexible`. Integrate a captcha by supplying `CAPTCHA_SECRET` and wiring verification in `src/index.ts`.
+
+### 7. Swap UI
+
+```bash
+cd ../swap-ui
+cp .env.example .env.local   # fill in deployed addresses
+npm install
+npm run dev
+```
+
+Build for production with `npm run build && npm run start`. Serve behind Apache using Cloudflare caching. The UI auto-configures wallets using `wallet_addEthereumChain` and reads balances via Wagmi.
+
+### 8. Add-Network Landing Page
+
+Host `apps/add-network/index.html` on a static bucket or CDN. It provides a one-click button to add ELTX Chain to MetaMask-compatible wallets (chainId `0x4F2A0`).
+
+## Operations Runbook
+
+1. **Backups**: Snapshot validator data directories (`infra/besu/node*/data`) and Blockscout Postgres volume daily.
+2. **Metrics & Healthchecks**:
+   - RPC: `curl https://rpc.eltx.online` (`eth_blockNumber`).
+   - Blockscout: `https://explorer.eltx.online/healthz` (200 OK).
+   - Faucet: `GET https://faucet.eltx.online/healthz`.
+3. **Upgrades**:
+   - Add new validator by generating keys via `init-ibft.sh`, updating `genesis.json`, and re-deploying static nodes.
+   - To change gas policy, run `set-gasprice.sh <wei>` on all nodes.
+4. **Security Checklist**:
+   - Rotate `FAUCET_PRIVATE_KEY` monthly and cap hot wallet balance < 500 ELTX.
+   - Protect `.env` files with `chmod 600` and restrict server user access.
+   - Enable log shipping for Besu, Blockscout, Faucet, and Swap UI (PM2) to centralized logging.
+   - Monitor Cloudflare analytics for L7 spikes.
+5. **Disaster Recovery**:
+   - Bring up replacement validator nodes using backed-up keys and static nodes.
+   - Restore Blockscout from Postgres backups (`pg_restore`).
+   - Re-deploy contracts only with multisig approval; minted supply resides in treasury account.
+
+### GitHub Push & PR Troubleshooting
+
+لو واجهت مشاكل في `git push` أو إنشاء Pull Request (زي Error 400 اللي بيطلع أحيانًا في تطبيق GitHub)، شوف الدليل التفصيلي في
+[`docs/troubleshooting/github-push.md`](docs/troubleshooting/github-push.md). الدليل فيه خطوات تحقق من الريموت، التوكنز، وإزاي
+تستخدم GitHub CLI علشان ترفع الفرع وتفتح PR من غير ما تتعطل، وكمان خطة لتقسيم التغييرات على ٣ Push لو محتاج ترفع الشغل على دفعات.
+
+## Directory Layout
+
+- `infra/besu/` — Besu configs, genesis, Docker Compose, and helper scripts.
+- `infra/blockscout/` — Blockscout Docker Compose, env, branding, and nginx sample.
+- `infra/reverse-proxy/` — Apache vhost and security snippets.
+- `contracts/` — Solidity contracts and bundled Uniswap V2 code.
+- `deploy/` — Hardhat config, scripts, and unit tests.
+- `apps/faucet/` — Express faucet service.
+- `apps/swap-ui/` — Next.js DEX frontend.
+- `apps/add-network/` — Static wallet helper page.
+- `security/THREAT_MODEL.md` — threat model and recommendations.
+- `ci/workflows/ci.yml` — GitHub Actions pipeline.
+
+## Testing & QA
+
+Run the automated tests before deployment:
+
+```bash
+cd deploy
+npx hardhat test
+```
+
+Unit tests cover ELTX mint/pause controls, WELTX wrap/unwrap, and Uniswap router swaps. Extend coverage with fuzzing or Foundry tests for additional assurance.
+
+## Postman Collection
+
+Use the following quick commands for smoke tests:
+
+- RPC block number: `curl -X POST https://rpc.eltx.online -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'`
+- Faucet dry run: `curl -X GET https://faucet.eltx.online/healthz`
+- Explorer status: `curl https://explorer.eltx.online/healthz`
+
+## Licensing
+
+- ELTX Chain source is MIT licensed (see `LICENSE`).
+- Bundled Uniswap V2 core/periphery remain under GPLv3 (see `contracts/uniswap-v2-*/LICENSE`).
+- NOTICE file includes attribution requirements.

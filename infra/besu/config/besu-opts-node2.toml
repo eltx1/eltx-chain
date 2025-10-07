@@ -1,0 +1,39 @@
+data-path="/var/lib/besu"
+genesis-file="/config/genesis.json"
+permissions-nodes-config-file-enabled=true
+permissions-nodes-config-file="/config/permissions.toml"
+static-nodes-file="/config/static-nodes.json"
+logging="INFO"
+host-allowlist=["*"]
+min-gas-price=1000000000
+mining-enabled=true
+mining-beneficiary="0x695658fC245ABbaDD7a276fF73Ed44f7374275D1"
+
+p2p-host="0.0.0.0"
+p2p-port=30304
+
+rpc-http-enabled=true
+rpc-http-host="0.0.0.0"
+rpc-http-port=8645
+rpc-http-api=["ETH","NET","WEB3","TXPOOL","ADMIN","DEBUG","TRACE","IBFT"]
+rpc-http-cors-origins=["https://eltx.online"]
+rpc-http-max-active-connections=2000
+rpc-http-authentication-enabled=false
+
+rpc-ws-enabled=true
+rpc-ws-host="0.0.0.0"
+rpc-ws-port=8646
+rpc-ws-api=["ETH","NET","WEB3","TXPOOL","IBFT"]
+rpc-ws-authentication-enabled=false
+
+metrics-enabled=true
+metrics-host="0.0.0.0"
+metrics-port=9645
+metrics-category="JVM,PROCESS,NETWORK,PEERS"
+
+sync-mode="FULL"
+
+tx-pool=
+  price-bump=10
+  max-size=1024
+  retention-hours=36

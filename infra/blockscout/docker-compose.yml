@@ -1,0 +1,77 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:15-alpine}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: blockscout
+      POSTGRES_PASSWORD: blockscout
+      POSTGRES_DB: blockscout
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blockscout"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: ${REDIS_IMAGE:-redis:7-alpine}
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  blockscout:
+    image: ${BLOCKSCOUT_IMAGE:-blockscout/blockscout:6.7.2}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://blockscout:blockscout@postgres:5432/blockscout
+      ECTO_USE_SSL: "false"
+      BLOCKSCOUT_HOST: 0.0.0.0
+      PORT: 4000
+      ETHEREUM_JSONRPC_HTTP_URL: ${ETHEREUM_JSONRPC_HTTP_URL:-https://rpc.eltx.online}
+      ETHEREUM_JSONRPC_WS_URL: ${ETHEREUM_JSONRPC_WS_URL:-wss://rpc.eltx.online/ws}
+      ETHEREUM_JSONRPC_TRACE_URL: ${ETHEREUM_JSONRPC_TRACE_URL:-https://rpc.eltx.online}
+      ETHEREUM_JSONRPC_VARIANT: besu
+      INDEXER_DISABLE_PENDING_TRANSACTIONS_FETCHER: "true"
+      DISABLE_REALTIME_INDEXER: "false"
+      DISABLE_WEBAPP_CACHE: "false"
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-supersecretkeychangeit}
+      RELEASE_COOKIE: eltx-cookie
+      ADMIN_PANEL_ENABLED: "true"
+      LOGO: /branding/eltx-logo.svg
+      COIN: ELTX
+      NETWORK_NAME: "ELTX Chain"
+      SUBNETWORK: IBFT2
+      BLOCKSCOUT_PROTOCOL: http
+      COIN_DECIMALS: 18
+      CHAIN_ID: 20256
+      CHECK_ORPHANS: "true"
+      DISABLE_WRITE_API: "false"
+      FEATURE_FLAG_GRAPHQL: "true"
+      HEALTH_CHECK_PORT: 4001
+      HEALTH_CHECK_SCHEME: http
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+      - "4001:4001"
+    volumes:
+      - ./chain-config.json:/opt/app/priv/app/web/templates/_chain.json:ro
+      - ./branding:/branding:ro
+
+volumes:
+  postgres-data:
+  redis-data:

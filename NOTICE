@@ -1,0 +1,6 @@
+ELTX Chain incorporates third-party open-source software:
+
+- Uniswap V2 Core (GPL-3.0) — https://github.com/Uniswap/v2-core
+- Uniswap V2 Periphery (GPL-3.0) — https://github.com/Uniswap/v2-periphery
+
+The bundled code retains its original license headers. Users must comply with GPL-3.0 terms when modifying or redistributing Uniswap-derived components.
